@@ -802,6 +802,8 @@ Returns a list of the form (REAL-FUNCTION DEF ALIASED REAL-DEF)."
 		 ;; aliases before functions.
 		 (aliased
 		  (format-message "an alias for `%s'" real-def))
+                 ((subr-native-elisp-p def)
+                  (concat beg "native compiled Lisp function"))
 		 ((subrp def)
 		  (concat beg (if (eq 'unevalled (cdr (subr-arity def)))
 		                  "special form"
@@ -1026,7 +1028,7 @@ it is displayed along with the global value."
 	      (princ (if file-name
 		         (progn
 		           (princ (format-message
-                                   " is a variable defined in `%s'.\n"
+                                   " is a variable defined in `%s'.\n\n"
                                    (if (eq file-name 'C-source)
                                        "C source code"
                                      (help-fns-short-filename file-name))))
@@ -1162,7 +1164,6 @@ it is displayed along with the global value."
 
               (with-current-buffer standard-output
                 (help-fns--ensure-empty-line))
-	      (princ "Documentation:\n")
 	      (with-current-buffer standard-output
 		(insert (or doc "Not documented as a variable."))))
 

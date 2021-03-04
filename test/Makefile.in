@@ -70,6 +70,7 @@ am__v_at_ = $(am__v_at_@AM_DEFAULT_V@)
 am__v_at_0 = @
 am__v_at_1 =
 
+HAVE_NATIVE_COMP = @HAVE_NATIVE_COMP@
 
 # Load any GNU ELPA dependencies that are present, for optional tests.
 GNU_ELPA_DIRECTORY ?= $(srcdir)/../../elpa
@@ -148,9 +149,15 @@ test_module_dir := src/emacs-module-resources
 
 all: check
 
+ifeq ($(HAVE_NATIVE_COMP),yes)
 SELECTOR_DEFAULT = (not (or (tag :expensive-test) (tag :unstable)))
 SELECTOR_EXPENSIVE = (not (tag :unstable))
 SELECTOR_ALL = t
+else
+SELECTOR_DEFAULT = (not (or (tag :expensive-test) (tag :unstable) (tag :nativecomp)))
+SELECTOR_EXPENSIVE = (not (or (tag :unstable) (tag :nativecomp)))
+SELECTOR_ALL = (not (tag :nativecomp))
+endif
 ifdef SELECTOR
 SELECTOR_ACTUAL=$(SELECTOR)
 else ifndef MAKECMDGOALS
@@ -257,7 +264,7 @@ endef
 $(foreach test,${TESTS},$(eval $(call test_template,${test})))
 
 ## Get the tests for only a specific directory.
-SUBDIRS = $(sort $(shell find lib-src lisp src -type d ! -path "*resources*" -print))
+SUBDIRS = $(sort $(shell find lib-src lisp misc src -type d ! -path "*resources*" -print))
 
 define subdir_template
   .PHONY: check-$(subst /,-,$(1))
