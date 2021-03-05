@@ -87,11 +87,21 @@ INFO_TARGETS = $(INFO_COMMON) efaq-w32
 ## are not as well formatted as handwritten ones.
 ORG_SETUP = $(wildcard ${srcdir}/*-setup.org)
 ORG_SRC = $(filter-out ${ORG_SETUP},$(wildcard ${srcdir}/*.org))
+TEXI_FROM_ORG = ${ORG_SRC:.org=.texi}
 
 # There are some naming differences between the info targets and the other
 # targets, so let's resolve them here.
 TARGETS_1 = $(INFO_INSTALL:ccmode=cc-mode)
 TARGETS = $(TARGETS_1:info.info=info)
+
+texi_sources = $(addsuffix .texi,${TARGETS})
+texi_notgen = $(filter-out $(notdir ${TEXI_FROM_ORG}),${texi_sources})
+texi_and_org = $(notdir ${ORG_SRC}) ${texi_notgen}
+SOURCES = $(sort ${texi_and_org})
+.PHONY: echo-sources
+## Used by the top-level Makefile.
+echo-sources:
+	@echo ${SOURCES}
 
 DVI_TARGETS  = $(TARGETS:=.dvi)
 HTML_TARGETS = $(TARGETS:=.html)
@@ -278,7 +288,7 @@ infoclean:
 .PHONY: orgclean
 
 orgclean:
-	rm -f $(addprefix ${srcdir}/,${ORG_SRC:=.texi})
+	rm -f ${TEXI_FROM_ORG}
 
 bootstrap-clean maintainer-clean: distclean infoclean orgclean
 
