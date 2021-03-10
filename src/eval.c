@@ -220,8 +220,8 @@ init_eval_once (void)
 {
   /* Don't forget to update docs (lispref node "Local Variables").  */
   if (!NATIVE_COMP_FLAG)
-    {/* See bug#46818.  */
-      max_specpdl_size = 1800; /* 1500 is not enough for cl-generic.el.  */
+    {
+      max_specpdl_size = 1800; /* See bug#46818.  */
       max_lisp_eval_depth = 800;
     }
   else
