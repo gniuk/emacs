@@ -4386,6 +4386,7 @@ AC_CHECK_HEADERS(
     [[
     #include <linux/seccomp.h>
     ]])])
+AC_SUBST([HAVE_SECCOMP])
 
 EMACS_CHECK_MODULES([LIBSECCOMP], [libseccomp >= 2.4.0])
 AC_SUBST([HAVE_LIBSECCOMP])
