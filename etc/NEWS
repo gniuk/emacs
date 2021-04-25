@@ -994,6 +994,9 @@ skipped.
 ** Help
 
 ---
+*** The 'help-for-help' ('C-h C-h') screen has been redesigned.
+
+---
 *** Keybindings in 'help-mode' use the new 'help-key-binding' face.
 This face is added by 'substitute-command-keys' to any "\[command]"
 substitution.  The return value of that function should consequently
@@ -1690,6 +1693,13 @@ choosing the exact definition to go to, and this should do TRT.
 If chosen, file names in "*xref*" buffers will be displayed relative
 to the 'project-root' of the current project, when available.
 
++++
+*** The TAB key binding in *xref* buffers is obsolete.
+Use 'C-u RET' instead.  The TAB binding in *xref* buffers is still
+supported, but we plan on removing it in a future version; at that
+time, the command 'xref-quit-and-goto-xref' will no longer have a key
+binding in 'xref--xref-buffer-mode-map'.
+
 ** json.el
 
 ---
@@ -2285,7 +2295,7 @@ The old names are now obsolete.
 
 ---
 *** 'world-clock-mode' can no longer be turned on interactively.
-Use `world-clock' to turn on that mode.
+Use 'world-clock' to turn on that mode.
 
 ** D-Bus
 
