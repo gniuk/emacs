@@ -175,6 +175,10 @@ Return them as multiple value."
      collect cstr into positives
    finally return (cl-values positives negatives)))
 
+;; So we can load comp-cstr.el and comp.el in non native compiled
+;; builds.
+(defvar comp-ctxt nil)
+
 (defvar comp-cstr-one (comp-value-to-cstr 1)
   "Represent the integer immediate one.")
 
@@ -186,13 +190,18 @@ Return them as multiple value."
 
 (defun comp-normalize-valset (valset)
   "Sort and remove duplicates from VALSET then return it."
-  (cl-remove-duplicates
-   (cl-sort valset (lambda (x y)
-                     ;; We might want to use `sxhash-eql' for speed but
-                     ;; this is safer to keep tests stable.
-                     (< (sxhash-equal x)
-			(sxhash-equal y))))
-   :test #'eq))
+  (cl-sort (cl-remove-duplicates valset :test #'eq)
+           (lambda (x y)
+             (cond
+              ((and (symbolp x) (symbolp y))
+               (string< x y))
+              ((and (symbolp x) (not (symbolp y)))
+               t)
+              ((and (not (symbolp x)) (symbolp y))
+               nil)
+              (t
+               (< (sxhash-equal x)
+                  (sxhash-equal y)))))))
 
 (defun comp-union-valsets (&rest valsets)
   "Union values present into VALSETS."
@@ -786,7 +795,9 @@ Non memoized version of `comp-cstr-intersection-no-mem'."
 
             (setf (range pos)
                   (comp-range-intersection (range pos)
-                                           (comp-range-negation (range neg))))
+                                           (comp-range-negation (range neg)))
+                  (valset pos)
+                  (cl-set-difference (valset pos) (valset neg)))
 
             ;; Return a non negated form.
             (setf (typeset dst) (typeset pos)

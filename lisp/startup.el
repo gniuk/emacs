@@ -537,7 +537,7 @@ It is the default value of the variable `top-level'."
     (setq user-emacs-directory
 	  (startup--xdg-or-homedot startup--xdg-config-home-emacs nil))
 
-    (when (featurep 'nativecomp)
+    (when (featurep 'native-compile)
       ;; Form `comp-eln-load-path'.
       (let ((path-env (getenv "EMACSNATIVELOADPATH")))
         (when path-env
@@ -550,7 +550,9 @@ It is the default value of the variable `top-level'."
       ;; testsuite, add a temporary folder in front to produce there
       ;; new compilations.
       (when (equal (getenv "HOME") "/nonexistent")
-        (push (make-temp-file "emacs-testsuite-" t) comp-eln-load-path)))
+        (let ((tmp-dir (make-temp-file "emacs-testsuite-" t)))
+          (add-hook 'kill-emacs-hook (lambda () (delete-directory tmp-dir t)))
+          (push tmp-dir comp-eln-load-path))))
     ;; Look in each dir in load-path for a subdirs.el file.  If we
     ;; find one, load it, which will add the appropriate subdirs of
     ;; that dir into load-path.  This needs to be done before setting
@@ -637,7 +639,7 @@ It is the default value of the variable `top-level'."
 		(set pathsym (mapcar (lambda (dir)
 				       (decode-coding-string dir coding t))
 				     path)))))
-        (when (featurep 'nativecomp)
+        (when (featurep 'native-compile)
           (let ((npath (symbol-value 'comp-eln-load-path)))
             (set 'comp-eln-load-path
                  (mapcar (lambda (dir)
