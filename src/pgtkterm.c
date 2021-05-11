@@ -510,8 +510,7 @@ pgtk_set_window_size (struct frame *f, bool change_gravity,
   f->output_data.pgtk->preferred_width = pixelwidth;
   f->output_data.pgtk->preferred_height = pixelheight;
   x_wm_set_size_hint (f, 0, 0);
-  xg_frame_set_char_size (f, FRAME_PIXEL_TO_TEXT_WIDTH (f, pixelwidth),
-			  FRAME_PIXEL_TO_TEXT_HEIGHT (f, pixelheight));
+  xg_frame_set_char_size (f, pixelwidth, pixelheight);
   gtk_widget_queue_resize (FRAME_WIDGET (f));
 
   unblock_input ();
@@ -591,6 +590,42 @@ pgtk_make_frame_visible_wait_for_map_event_timeout (gpointer user_data)
   return FALSE;
 }
 
+static void
+pgtk_wait_for_map_event (struct frame *f, bool multiple_times)
+{
+  if (FLOATP (Vpgtk_wait_for_event_timeout))
+    {
+      guint msec =
+	(guint) (XFLOAT_DATA (Vpgtk_wait_for_event_timeout) * 1000);
+      int found = 0;
+      int timed_out = 0;
+      gulong id =
+	g_signal_connect (FRAME_WIDGET (f), "map-event",
+			  G_CALLBACK
+			  (pgtk_make_frame_visible_wait_for_map_event_cb),
+			  &found);
+      guint src =
+	g_timeout_add (msec,
+		       pgtk_make_frame_visible_wait_for_map_event_timeout,
+		       &timed_out);
+
+      if (!multiple_times)
+	{
+	  while (!found && !timed_out)
+	    gtk_main_iteration ();
+	}
+      else
+	{
+	  while (!timed_out)
+	    gtk_main_iteration ();
+	}
+
+      g_signal_handler_disconnect (FRAME_WIDGET (f), id);
+      if (!timed_out)
+	g_source_remove (src);
+    }
+}
+
 void
 pgtk_make_frame_visible (struct frame *f)
 /* --------------------------------------------------------------------------
@@ -607,27 +642,7 @@ pgtk_make_frame_visible (struct frame *f)
       if (win)
 	gtk_window_deiconify (GTK_WINDOW (win));
 
-      if (FLOATP (Vpgtk_wait_for_event_timeout))
-	{
-	  guint msec =
-	    (guint) (XFLOAT_DATA (Vpgtk_wait_for_event_timeout) * 1000);
-	  int found = 0;
-	  int timed_out = 0;
-	  gulong id =
-	    g_signal_connect (FRAME_WIDGET (f), "map-event",
-			      G_CALLBACK
-			      (pgtk_make_frame_visible_wait_for_map_event_cb),
-			      &found);
-	  guint src =
-	    g_timeout_add (msec,
-			   pgtk_make_frame_visible_wait_for_map_event_timeout,
-			   &timed_out);
-	  while (!found && !timed_out)
-	    gtk_main_iteration ();
-	  g_signal_handler_disconnect (FRAME_WIDGET (f), id);
-	  if (!timed_out)
-	    g_source_remove (src);
-	}
+      pgtk_wait_for_map_event (f, false);
     }
 }
 
@@ -641,6 +656,13 @@ pgtk_make_frame_invisible (struct frame *f)
   PGTK_TRACE ("pgtk_make_frame_invisible");
 
   gtk_widget_hide (FRAME_WIDGET (f));
+
+  /* Map events are emitted many times, and
+   * map_event() do SET_FRAME_VISIBLE(f, 1).
+   * I expect visible = 0, so process those map events here and
+   * SET_FRAME_VISIBLE(f, 0) after that.
+   */
+  pgtk_wait_for_map_event (f, true);
 
   SET_FRAME_VISIBLE (f, 0);
   SET_FRAME_ICONIFIED (f, false);
