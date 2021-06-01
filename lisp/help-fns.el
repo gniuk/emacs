@@ -268,7 +268,9 @@ If we can't find the file name, nil is returned."
   (let ((docbuf (get-buffer-create " *DOC*"))
 	(name (if (eq 'var kind)
 		  (concat "V" (symbol-name subr-or-var))
-		(concat "F" (subr-name (advice--cd*r subr-or-var))))))
+		(concat "F" (if (symbolp subr-or-var)
+                                (symbol-name subr-or-var)
+                              (subr-name (advice--cd*r subr-or-var)))))))
     (with-current-buffer docbuf
       (goto-char (point-min))
       (if (eobp)
@@ -1022,12 +1024,12 @@ it is displayed along with the global value."
                 (format-prompt "Describe variable" (and (symbolp v) v))
                 #'help--symbol-completion-table
                 (lambda (vv)
-                  ;; In case the variable only exists in the buffer
-                  ;; the command we switch back to that buffer before
-                  ;; we examine the variable.
-                  (with-current-buffer orig-buffer
-                    (or (get vv 'variable-documentation)
-                        (and (boundp vv) (not (keywordp vv))))))
+                  (or (get vv 'variable-documentation)
+                      (and (not (keywordp vv))
+                           ;; Since the variable may only exist in the
+                           ;; original buffer, we have to look for it
+                           ;; there.
+                           (buffer-local-boundp vv orig-buffer))))
                 t nil nil
                 (if (symbolp v) (symbol-name v))))
      (list (if (equal val "")
