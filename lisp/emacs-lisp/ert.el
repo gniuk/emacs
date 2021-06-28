@@ -313,12 +313,13 @@ It should only be stopped when ran from inside ert--run-test-internal."
                                  (list :form `(,,fn ,@,args))
                                  (unless (eql ,value ',default-value)
                                    (list :value ,value))
-                                 (let ((-explainer-
-                                        (and (symbolp ',fn-name)
-                                             (get ',fn-name 'ert-explainer))))
-                                   (when -explainer-
-                                     (list :explanation
-                                           (apply -explainer- ,args)))))
+                                 (unless (eql ,value ',default-value)
+                                   (let ((-explainer-
+                                          (and (symbolp ',fn-name)
+                                               (get ',fn-name 'ert-explainer))))
+                                     (when -explainer-
+                                       (list :explanation
+                                             (apply -explainer- ,args))))))
                          value)
                ,value))))))))
 
@@ -1300,7 +1301,7 @@ empty string."
   "Pretty-print OBJECT, indenting it to the current column of point.
 Ensures a final newline is inserted."
   (let ((begin (point))
-        (pp-escape-newlines nil)
+        (pp-escape-newlines t)
         (print-escape-control-characters t))
     (pp object (current-buffer))
     (unless (bolp) (insert "\n"))

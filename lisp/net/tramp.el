@@ -2610,7 +2610,14 @@ Fall back to normal file name handler if no Tramp file name handler exists."
 
       ;; When `tramp-mode' is not enabled, or the file name is quoted,
       ;; we don't do anything.
-      (tramp-run-real-handler operation args))))
+      ;; When operation is `expand-file-name', and the first argument
+      ;; is a local absolute file name, we end also here.  Handle the
+      ;; MS Windows case.
+      (funcall
+       (if (and (eq operation 'expand-file-name)
+		(not (string-match-p "\\`[[:alpha:]]:/" (car args))))
+	   #'tramp-drop-volume-letter #'identity)
+       (tramp-run-real-handler operation args)))))
 
 (defun tramp-completion-file-name-handler (operation &rest args)
   "Invoke Tramp file name completion handler for OPERATION and ARGS.
@@ -3648,17 +3655,17 @@ User is always nil."
 		     (cdr x))))
 		tramp-backup-directory-alist)
 	     backup-directory-alist))
-	  (uid (tramp-compat-file-attribute-user-id
-		(file-attributes filename 'integer)))
 	  result)
       (prog1 ;; Run plain `find-backup-file-name'.
 	  (setq result
 		(tramp-run-real-handler
 		 #'find-backup-file-name (list filename)))
         ;; Protect against security hole.
-	(when (and (natnump uid) (zerop uid)
+	(when (and (not tramp-allow-unsafe-temporary-files)
 		   (file-in-directory-p (car result) temporary-file-directory)
-		   (not tramp-allow-unsafe-temporary-files)
+		   (zerop (or (tramp-compat-file-attribute-user-id
+			       (file-attributes filename 'integer))
+			      tramp-unknown-id-integer))
 		   (not (with-tramp-connection-property
 			    (tramp-get-process v) "unsafe-temporary-file"
 			  (yes-or-no-p
@@ -5264,8 +5271,7 @@ this file, if that variable is non-nil."
 	  (auto-save-file-name-transforms
 	   (if (null tramp-auto-save-directory)
 	       auto-save-file-name-transforms))
-	  (uid (tramp-compat-file-attribute-user-id
-		(file-attributes buffer-file-name 'integer)))
+	  (filename buffer-file-name)
 	  (buffer-file-name
 	   (if (null tramp-auto-save-directory)
 	       buffer-file-name
@@ -5283,9 +5289,11 @@ this file, if that variable is non-nil."
       (prog1 ;; Run plain `make-auto-save-file-name'.
 	  (setq result (tramp-run-real-handler #'make-auto-save-file-name nil))
 	;; Protect against security hole.
-	(when (and (natnump uid) (zerop uid)
+	(when (and (not tramp-allow-unsafe-temporary-files)
 		   (file-in-directory-p result temporary-file-directory)
-		   (not tramp-allow-unsafe-temporary-files)
+		   (zerop (or (tramp-compat-file-attribute-user-id
+			       (file-attributes filename 'integer))
+			      tramp-unknown-id-integer))
 		   (not (with-tramp-connection-property
 			    (tramp-get-process v) "unsafe-temporary-file"
 			  (yes-or-no-p
